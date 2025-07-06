@@ -5,7 +5,7 @@ from datetime import datetime
 
 # ==================== API KEYS & AUTHENTICATION ====================
 # ScrapeOps Configuration - Get your free API key from https://scrapeops.io/
-SCRAPEOPS_API_KEY = os.getenv('SCRAPEOPS_API_KEY', '9ba241a2-3bdd-4ce5-86db-f59d50e45290')
+SCRAPEOPS_API_KEY = os.getenv('SCRAPEOPS_API_KEY', 'api_key_here')
 
 # ==================== SCRAPING TARGETS ====================
 # Keywords to scrape (can be overridden via command line)
