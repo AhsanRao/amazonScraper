@@ -6,7 +6,7 @@ SPIDER_MODULES = ["amazon_scraper.spiders"]
 NEWSPIDER_MODULE = "amazon_scraper.spiders"
 
 ADDONS = {}
-
+LOG_STDOUT=False
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "amazon_scraper (+http://www.yourdomain.com)"
