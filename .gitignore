@@ -70,6 +70,7 @@ coverage.xml
 *.local
 *.env
 .env.*
+python_env/
 
 # IDEs
 .vscode/
