@@ -73,8 +73,11 @@ class KeywordGenerator:
     
     def _generate_keywords_for_category(self, category: str, domain: str) -> List[str]:
         """Generate keywords for a specific category"""
-        # PLACEHOLDER IMPLEMENTATION - Replace with OpenAI API call
-        return self._placeholder_keyword_generation(category, domain)
+        if config.OPENAI_API_KEY and config.OPENAI_API_KEY != 'YOUR_OPENAI_API_KEY_HERE':
+            return self._openai_generate_keywords(category, domain)
+        else:
+            self.logger.info("Using placeholder keyword generation (OpenAI not configured)")
+            return self._placeholder_keyword_generation(category, domain)
     
     def _placeholder_keyword_generation(self, category: str, domain: str) -> List[str]:
         """Placeholder keyword generation with hardcoded values"""
@@ -172,12 +175,130 @@ class KeywordGenerator:
         return selected_keywords
     
     def _openai_generate_keywords(self, category: str, domain: str) -> List[str]:
-        """Generate keywords using OpenAI API (placeholder for now)"""
-        # TODO: Implement OpenAI API integration
-        # This will be implemented when you're ready to use the actual API
-        
-        self.logger.warning("OpenAI keyword generation not implemented yet, using placeholder")
-        return self._placeholder_keyword_generation(category, domain)
+        """Generate keywords using OpenAI API with config-driven prompt"""
+        try:
+            from openai import OpenAI
+            import json
+            
+            # Set up OpenAI client
+            if config.OPENAI_API_KEY == 'YOUR_OPENAI_API_KEY_HERE':
+                self.logger.warning("OpenAI API key not configured, using placeholder generation")
+                return self._placeholder_keyword_generation(category, domain)
+            
+            # Configure OpenAI client (new v1.0+ syntax)
+            client = OpenAI(api_key=config.OPENAI_API_KEY)
+            
+            # Get category-specific trends from config
+            trends = config.CATEGORY_TRENDS.get(category, config.DEFAULT_TRENDING_TOPICS)
+            
+            # Get market context from config
+            market_context = config.DOMAIN_MARKET_CONTEXT.get(domain, 'US market')
+            
+            # Build prompt from config template
+            prompt = config.KEYWORD_GENERATION_PROMPT.format(
+                count=config.KEYWORDS_PER_CATEGORY,
+                category=category,
+                category_lower=category.lower(),
+                market_context=market_context,
+                trends=trends
+            )
+            
+            self.logger.debug(f"Sending request to OpenAI for category: {category}")
+            
+            # Make API call using new client syntax
+            response = client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": config.OPENAI_SYSTEM_PROMPT
+                    },
+                    {
+                        "role": "user", 
+                        "content": prompt
+                    }
+                ],
+                max_tokens=config.OPENAI_MAX_TOKENS,
+                temperature=config.OPENAI_TEMPERATURE,
+                top_p=1,
+                frequency_penalty=0.2,
+                presence_penalty=0.1
+            )
+            
+            # Parse response (new response format)
+            ai_content = response.choices[0].message.content.strip()
+            import re
+            # Clean up any JSON formatting markers (like in your reference)
+            ai_content = re.sub(r"^```(?:json)?\n|\n```$", "", ai_content.strip())
+            
+            # Extract keywords from response using config settings
+            keywords = []
+            lines = ai_content.split('\n')
+            
+            for line in lines:
+                # Clean up the line
+                line = line.strip()
+                
+                # Skip empty lines
+                if not line:
+                    continue
+                    
+                # Remove numbers, bullets, and other formatting
+                line = re.sub(r'^\d+[\.\)]\s*', '', line)  # Remove "1. " or "1) "
+                line = re.sub(r'^[-\*•]\s*', '', line)     # Remove "- " or "* " or "• "
+                line = line.strip()
+                
+                # Skip if line is too short or too long (from config)
+                if len(line) < config.KEYWORD_MIN_LENGTH or len(line) > config.KEYWORD_MAX_LENGTH:
+                    continue
+                    
+                # Skip if it contains unwanted characters or phrases (from config)
+                if any(pattern in line for pattern in config.KEYWORD_SKIP_PATTERNS):
+                    continue
+                    
+                # Clean up quotes and extra whitespace
+                line = line.strip('"\'').strip()
+                
+                # Convert to lowercase for consistency
+                line = line.lower()
+                
+                # Check reasonable keyword length (from config)
+                if line and len(line.split()) <= config.KEYWORD_MAX_WORDS:
+                    keywords.append(line)
+            
+            # Remove duplicates while preserving order
+            unique_keywords = []
+            seen = set()
+            for keyword in keywords:
+                if keyword not in seen:
+                    seen.add(keyword)
+                    unique_keywords.append(keyword)
+            
+            # Limit to requested count from config
+            final_keywords = unique_keywords[:min(config.KEYWORDS_PER_CATEGORY, len(unique_keywords))]
+            
+            self.logger.info(f"Generated {len(final_keywords)} keywords for category: {category}")
+            self.logger.debug(f"Generated keywords: {final_keywords}")
+            
+            return final_keywords
+            
+        except ImportError as e:
+            self.logger.error(f"OpenAI library not installed or import failed: {e}")
+            return self._placeholder_keyword_generation(category, domain)
+            
+        except Exception as e:
+            # Catch all OpenAI-related errors (AuthenticationError, RateLimitError, APIError, etc.)
+            error_msg = str(e)
+            if "authentication" in error_msg.lower():
+                self.logger.error("OpenAI API authentication failed. Check your API key.")
+            elif "rate limit" in error_msg.lower():
+                self.logger.warning("OpenAI API rate limit exceeded. Using placeholder generation.")
+            elif "api" in error_msg.lower():
+                self.logger.error(f"OpenAI API error: {e}")
+            else:
+                self.logger.error(f"Unexpected error in OpenAI keyword generation: {e}")
+            
+            return self._placeholder_keyword_generation(category, domain)
     
     def _calculate_keyword_priority(self, keyword: str, category: str) -> int:
         """Calculate priority for keyword (1-10, higher is better)"""

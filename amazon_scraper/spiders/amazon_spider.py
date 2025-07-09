@@ -107,16 +107,20 @@ class AmazonSpider(scrapy.Spider):
             self.logger.info(f"Starting request for: {search_url}") 
             category = getattr(self, 'keyword_categories', {}).get(keyword, 'Unknown')
 
-            yield scrapy.Request(
-                url=search_url,
-                callback=self.parse_search_results,
-                meta={
-                    'keyword': keyword,
-                    'page': 1,
-                    'domain': self.target_domain,
-                    'category': category
-                }
-            )
+            for page in range(1, min(self.MAX_PAGES + 1, 4)):  # Max 3 pages concurrently
+                page_url = f"{search_url}&page={page}" if page > 1 else search_url
+                
+                yield scrapy.Request(
+                    url=page_url,
+                    callback=self.parse_search_results,
+                    meta={
+                        'keyword': keyword,
+                        'page': page,
+                        'domain': self.target_domain,
+                        'category': category
+                    },
+                    priority=10 - page  # Higher priority for first pages
+                )
 
     def parse_search_results(self, response):
         """Parse search results page and extract product URLs"""

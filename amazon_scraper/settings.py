@@ -1,5 +1,7 @@
 import config
 
+TWISTED_REACTOR = 'twisted.internet.asyncioreactor.AsyncioSelectorReactor'
+
 BOT_NAME = "amazon_scraper"
 
 SPIDER_MODULES = ["amazon_scraper.spiders"]
@@ -13,6 +15,9 @@ LOG_STDOUT=False
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
+COOKIES_ENABLED = False
+REDIRECT_ENABLED = False
+METAREFRESH_ENABLED = False
 
 # Concurrency and throttling settings
 CONCURRENT_REQUESTS = config.CONCURRENT_REQUESTS
@@ -20,6 +25,10 @@ CONCURRENT_REQUESTS_PER_DOMAIN = config.CONCURRENT_REQUESTS
 DOWNLOAD_DELAY = config.DELAY_BETWEEN_REQUESTS
 RANDOMIZE_DOWNLOAD_DELAY = True
 
+DOWNLOAD_TIMEOUT = config.DOWNLOAD_TIMEOUT
+DOWNLOAD_WARNSIZE = 0
+DNSCACHE_ENABLED = True
+DNSCACHE_SIZE = 10000
 
 # Disable cookies (enabled by default)
 #COOKIES_ENABLED = False
@@ -69,8 +78,8 @@ EXTENSIONS = {
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     "amazon_scraper.pipelines.ValidationPipeline": 100,           # Validate first
-    "amazon_scraper.pipelines.DatabaseDuplicatesPipeline": 200,   # Filter DB duplicates  
-    "amazon_scraper.pipelines.DuplicatesPipeline": 250,           # Memory duplicate backup
+    "amazon_scraper.pipelines.DuplicatesPipeline": 200,           # Memory duplicate backup
+    "amazon_scraper.pipelines.DatabaseDuplicatesPipeline": 250,   # Filter DB duplicates  
     "amazon_scraper.pipelines.AmazonScraperPipeline": 300,        # Your existing processing
     "amazon_scraper.pipelines.MongoDBPipeline": 400,              # Store in MongoDB
     "amazon_scraper.pipelines.JsonWriterPipeline": 500,           # Output to JSON
@@ -82,12 +91,12 @@ AUTOTHROTTLE_ENABLED = True
 # The initial download delay
 AUTOTHROTTLE_START_DELAY = config.DELAY_BETWEEN_REQUESTS
 # The maximum download delay to be set in case of high latencies
-AUTOTHROTTLE_MAX_DELAY = 60
+AUTOTHROTTLE_MAX_DELAY = config.AUTOTHROTTLE_MAX_DELAY
 # The average number of requests Scrapy should be sending in parallel to
 # each remote server
-AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+AUTOTHROTTLE_TARGET_CONCURRENCY = config.AUTOTHROTTLE_TARGET_CONCURRENCY
 # Enable showing throttling stats for every response received:
-AUTOTHROTTLE_DEBUG = True
+AUTOTHROTTLE_DEBUG = False
 
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
@@ -128,3 +137,8 @@ RETRY_HTTP_CODES = config.RETRY_HTTP_CODES
 
 # Configure telnet console
 TELNETCONSOLE_ENABLED = False
+
+FEED_EXPORT_BATCH_ITEM_COUNT = 1000
+STATS_DUMP = False
+COMPRESSION_ENABLED = True
+DOWNLOAD_FAIL_ON_DATALOSS = False

@@ -50,16 +50,16 @@ DEFAULT_DOMAIN = 'us'
 # Scraping performance settings
 MAX_PAGES_PER_KEYWORD = 1  # Number of pages to scrape per keyword
 MAX_PRODUCTS_PER_PAGE = 20  # Approximate products per page
-DELAY_BETWEEN_REQUESTS = 0.5  # Seconds between requests (recommended: 2-5)
+DELAY_BETWEEN_REQUESTS = 0.1  # Seconds between requests (recommended: 2-5)
 RANDOMIZE_DELAY = True  # Add randomness to delays
-CONCURRENT_REQUESTS = 16  # Number of concurrent requests (recommended: 1-2)
-CONCURRENT_REQUESTS_PER_DOMAIN = 5  # Concurrent requests per domain
+CONCURRENT_REQUESTS = 50  # Number of concurrent requests (recommended: 1-2)
+CONCURRENT_REQUESTS_PER_DOMAIN = 25  # Concurrent requests per domain
 
 # AutoThrottle settings (dynamic delay adjustment)
 AUTOTHROTTLE_ENABLED = True
-AUTOTHROTTLE_START_DELAY = 0.5
-AUTOTHROTTLE_MAX_DELAY = 10
-AUTOTHROTTLE_TARGET_CONCURRENCY = 8.0
+AUTOTHROTTLE_START_DELAY = 0.1
+AUTOTHROTTLE_MAX_DELAY = 1.0
+AUTOTHROTTLE_TARGET_CONCURRENCY = 20.0
 AUTOTHROTTLE_DEBUG = True
 
 # ==================== USER AGENT CONFIGURATION ====================
@@ -106,12 +106,12 @@ PROXY_RETRY_TIMES = 3
 
 # ==================== RETRY & ERROR HANDLING ====================
 # Retry configuration
-RETRY_TIMES = 3
+RETRY_TIMES = 2
 RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408, 429, 403]
 RETRY_PRIORITY_ADJUST = -1
 
 # Download timeout settings
-DOWNLOAD_TIMEOUT = 180  # seconds
+DOWNLOAD_TIMEOUT = 30  # seconds
 DOWNLOAD_WARNSIZE = 33554432  # 32MB
 
 # ==================== CACHING CONFIGURATION ====================
@@ -223,10 +223,15 @@ DEFAULT_HEADERS = {
 }
 
 # ==================== ADVANCED SETTINGS ====================
+REACTOR_THREADPOOL_MAXSIZE = 50
+DNSCACHE_ENABLED = True
+DNSCACHE_SIZE = 10000
+COOKIES_ENABLED = False
+REDIRECT_ENABLED = False
 # Memory usage settings
 MEMUSAGE_ENABLED = True
-MEMUSAGE_LIMIT_MB = 2048  # 2GB limit
-MEMUSAGE_WARNING_MB = 1536  # Warning at 1.5GB
+MEMUSAGE_LIMIT_MB = 4096  # 2GB limit
+MEMUSAGE_WARNING_MB = 3072  # Warning at 1.5GB
 
 # Feed export settings
 FEED_EXPORT_ENCODING = 'utf-8'
@@ -305,10 +310,10 @@ MONGODB_COLLECTIONS = {
 }
 
 # MongoDB performance settings
-MONGODB_BATCH_SIZE = 100  # Batch insert size
+MONGODB_BATCH_SIZE = 500  # Batch insert size
 MONGODB_CONNECTION_TIMEOUT = 5000  # milliseconds
 MONGODB_SOCKET_TIMEOUT = 30000  # milliseconds
-MONGODB_MAX_POOL_SIZE = 10
+MONGODB_MAX_POOL_SIZE = 50
 
 # ==================== DUPLICATE PREVENTION ====================
 # Duplicate checking settings
@@ -334,8 +339,8 @@ OPENAI_TEMPERATURE = 0.7
 # Categories for keyword generation
 PRODUCT_CATEGORIES = [
     'Electronics',
-    'Home & Kitchen'
-    # 'Sports & Outdoors',
+    'Home & Kitchen',
+    'Sports & Outdoors'
     # 'Health & Personal Care',
     # 'Clothing & Accessories',
     # 'Books',
@@ -346,22 +351,62 @@ PRODUCT_CATEGORIES = [
 ]
 
 # Keyword generation parameters
-KEYWORDS_PER_CATEGORY = 2  # How many keywords to generate per category
+KEYWORDS_PER_CATEGORY = 10  # How many keywords to generate per category
 GENERATION_PROMPTS_COUNT = 1  # How many times to generate keywords (for variety)
 MAX_KEYWORDS_PER_RUN = 50  # Maximum keywords to process in one scraping run
 
-# Keyword generation prompt template
-KEYWORD_GENERATION_PROMPT = """
-Generate {count} specific, popular product search keywords for the {category} category on Amazon.
-Focus on:
-- Products that people actually search for
-- Specific product types, not generic terms
-- Mix of branded and generic keywords
-- Various price ranges
-- Popular trending items
+# ==================== KEYWORD GENERATION CONFIGURATION ====================
+# OpenAI keyword generation prompt template
+KEYWORD_GENERATION_PROMPT = """Generate a list of {count} high-potential, SEO-optimized keywords for trending Amazon products in the {category} category for the year 2025, specifically for the {market_context}.
 
-Return only the keywords, one per line, without numbers or bullets.
-"""
+Focus on:
+- Emerging {category_lower} trends (e.g. {trends})
+- Keywords that reflect current user intent and purchase behavior
+- A mix of long-tail and short-tail keywords
+- Amazon-specific product search terms
+- Products that are likely to be popular in 2025
+
+The output should be a flat list of {count} unique keywords, sorted by trend relevance, without any extra commentary."""
+
+# Category-specific trending focus areas
+CATEGORY_TRENDS = {
+    'Electronics': 'smart home, wearables, AI gadgets, portable devices, gaming accessories, wireless charging, VR/AR devices, streaming devices',
+    'Home & Kitchen': 'smart kitchen appliances, air purifiers, robot vacuums, meal prep tools, eco-friendly products, multi-functional gadgets',
+    'Sports & Outdoors': 'fitness trackers, smart exercise equipment, outdoor tech, recovery devices, sustainable gear, home gym equipment',
+    'Health & Personal Care': 'wellness tech, skincare devices, air quality monitors, mental health apps, fitness supplements, sleep optimization',
+    'Clothing & Accessories': 'sustainable fashion, smart textiles, athleisure, minimalist accessories, tech-integrated clothing, comfort wear',
+    'Beauty': 'skincare tech, clean beauty, personalized products, anti-aging devices, sustainable packaging, K-beauty trends',
+    'Automotive': 'electric vehicle accessories, smart car gadgets, dash cams, wireless charging mounts, car air purifiers',
+    'Office Products': 'remote work tools, ergonomic accessories, productivity gadgets, digital organization, standing desk accessories',
+    'Books': 'self-improvement, productivity guides, mental health resources, sustainable living, technology trends, career development',
+    'Toys & Games': 'educational STEM toys, smart toys, eco-friendly options, screen-free activities, interactive learning, creativity kits'
+}
+
+# Domain-specific market context
+DOMAIN_MARKET_CONTEXT = {
+    'us': 'US market',
+    'uk': 'UK market', 
+    'de': 'German market',
+    'fr': 'French market',
+    'es': 'Spanish market',
+    'it': 'Italian market',
+    'ca': 'Canadian market',
+    'jp': 'Japanese market',
+    'au': 'Australian market',
+    'in': 'Indian market'
+}
+
+# OpenAI system prompt
+OPENAI_SYSTEM_PROMPT = "You are a keyword research expert specializing in Amazon product searches and current market trends. Generate only the most relevant and popular search terms that real customers would use when searching for products on Amazon."
+
+# Keyword filtering settings
+KEYWORD_MIN_LENGTH = 3
+KEYWORD_MAX_LENGTH = 100
+KEYWORD_MAX_WORDS = 6
+KEYWORD_SKIP_PATTERNS = [':', '?', '!', ';', '(', ')', '[', ']', 'Here are', 'Keywords:', 'List:', 'Amazon', 'products']
+
+# Default trending topics fallback
+DEFAULT_TRENDING_TOPICS = 'smart home, wearables, AI gadgets, portable devices, gaming accessories, wireless charging, VR/AR devices, streaming devices'
 
 # ==================== PERFORMANCE OPTIMIZATION ====================
 # Database performance settings
