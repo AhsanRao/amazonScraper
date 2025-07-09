@@ -281,6 +281,7 @@ class AmazonSpider(scrapy.Spider):
         item['CustomerServiceProvider'] = self.extract_customer_service_provider(response)
         item['SellerOffersCount'] = self.extract_seller_offers_count(response)
         item['IsBuyBoxWinner'] = self.extract_buy_box_winner(response)
+        item['TotalBought'] = self.extract_total_bought(response)
         
         # Metadata
         item['ScrapedAt'] = datetime.now().isoformat()
@@ -732,6 +733,39 @@ class AmazonSpider(scrapy.Spider):
                 return True
         
         return False
+    
+    def extract_total_bought(self, response):
+        """Extract total bought information"""
+        total_bought_selectors = [
+            'span:contains("bought in the past month")::text',
+            'span:contains("purchased")::text',
+            'span:contains("bought")::text',
+            'div:contains("bought in the past month")::text',
+            'div:contains("purchased")::text',
+            'div:contains("bought")::text'
+        ]
+        
+        for selector in total_bought_selectors:
+            bought_text = response.css(selector).get()
+            if bought_text:
+                import re
+                number_match = re.search(r'(\d+(?:\.\d+)?[KMB]?\+?)\s*(?:bought|purchased)', bought_text, re.IGNORECASE)
+                if number_match:
+                    return number_match.group(1)
+        
+        page_text = response.text
+        bought_patterns = [
+            r'(\d+(?:\.\d+)?[KMB]?\+?)\s*bought\s+in\s+the\s+past\s+month',
+            r'(\d+(?:\.\d+)?[KMB]?\+?)\s*purchased',
+            r'(\d+(?:\.\d+)?[KMB]?\+?)\s*bought'
+        ]
+        
+        for pattern in bought_patterns:
+            match = re.search(pattern, page_text, re.IGNORECASE)
+            if match:
+                return match.group(1)
+        
+        return None
     
     def closed(self, reason):
         """Called when spider closes - mark any remaining keywords as attempted"""

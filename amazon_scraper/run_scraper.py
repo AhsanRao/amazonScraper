@@ -125,7 +125,7 @@ def setup_project():
 
 def check_dependencies():
     """Check if required dependencies are installed"""
-    required_packages = ['scrapy', 'requests', 'beautifulsoup4', 'lxml']
+    required_packages = ['scrapy', 'requests', 'bs4', 'lxml']
     missing_packages = []
     
     for package in required_packages:

@@ -5,7 +5,7 @@ from datetime import datetime
 
 # ==================== API KEYS & AUTHENTICATION ====================
 # ScrapeOps Configuration - Get your free API key from https://scrapeops.io/
-SCRAPEOPS_API_KEY = os.getenv('SCRAPEOPS_API_KEY', 'api_key_here')
+SCRAPEOPS_API_KEY = os.getenv('SCRAPEOPS_API_KEY', 'e0effedc-0423-4ebd-a658-66df1561b5a3')
 
 # ==================== SCRAPING TARGETS ====================
 # Keywords to scrape (can be overridden via command line)
@@ -293,7 +293,7 @@ if _config_errors:
 
 # ==================== MONGODB CONFIGURATION ====================
 # MongoDB connection settings
-MONGODB_ENABLED = True
+MONGODB_ENABLED = False
 MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
 MONGODB_DATABASE = os.getenv('MONGODB_DATABASE', 'amazon_scraper')
 

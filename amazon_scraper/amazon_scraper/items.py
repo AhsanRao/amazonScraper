@@ -48,6 +48,7 @@ class AmazonProductItem(scrapy.Item):
     # Product details
     Brand = Field()
     ListingDate = Field()
+    TotalBought = Field()
     
     # Scraping metadata
     ScrapedAt = Field()
