@@ -21,6 +21,10 @@ class AmazonProductItem(scrapy.Item):
     BestSellerRank = Field()
     SalesSubRank = Field()
     SalesSubSubRank = Field()
+    SalesSubSubSubRank = Field()
+    RankCategoryName = Field()
+    SubRankCategoryName = Field()
+    SubSubRankCategoryName = Field()
     
     # Delivery information
     FastestDelivery = Field()
@@ -39,6 +43,7 @@ class AmazonProductItem(scrapy.Item):
     IsBuyBoxWinner = Field()
     FulfilledBy = Field()
     CustomerServiceProvider = Field()
+    Sellers = Field()  # Array of seller objects
     
     # Prime and availability
     IsPrime = Field()
@@ -49,6 +54,7 @@ class AmazonProductItem(scrapy.Item):
     Brand = Field()
     ListingDate = Field()
     TotalBought = Field()
+    NumberOfVariations = Field()
     
     # Scraping metadata
     ScrapedAt = Field()

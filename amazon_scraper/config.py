@@ -10,21 +10,24 @@ SCRAPEOPS_API_KEY = os.getenv('SCRAPEOPS_API_KEY', 'e0effedc-0423-4ebd-a658-66df
 # ==================== SCRAPING TARGETS ====================
 # Keywords to scrape (can be overridden via command line)
 KEYWORDS = [
-    'wireless headphones',
-    'laptop',
-    'smartphone',
-    'gaming chair',
-    'bluetooth speaker',
-    'coffee machine',
-    'running shoes',
-    'tablet',
-    'smart watch',
-    'air fryer',
-    'gaming mouse',
-    'mechanical keyboard',
-    'webcam',
-    'monitor',
-    'graphics card'
+    'electronics',
+    'arts crafts sewing',
+    'beauty',
+    'health personal care',
+    'home kitchen',
+    'patio lawn garden',
+    'luggage travel gear',
+    'pet supplies',
+    'sports outdoors',
+    'cell phones accessories',
+    'appliances',
+    'automotive',
+    'baby',
+    'clothing',
+    'office products',
+    'computers',
+    'tools home improvement',
+    'toys games'
 ]
 
 # Amazon domains configuration
