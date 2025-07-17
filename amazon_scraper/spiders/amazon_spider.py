@@ -262,16 +262,39 @@ class AmazonSpider(scrapy.Spider):
         item['Price'] = self.extract_price(response)
         item['ShippingCost'] = self.extract_shipping_cost(response)
         
-        # Rankings - UPDATED WITH WORKING SELECTORS
-        item['BestSellerRank'] = self.extract_best_seller_rank(response)
-        item['SalesSubRank'] = self.extract_sales_sub_rank(response)
-        item['SalesSubSubRank'] = self.extract_sales_sub_sub_rank(response)
+        # Rankings 
+        best_rank = self.extract_best_seller_rank(response)
+        if best_rank and isinstance(best_rank, dict):
+            item['BestSellerRank'] = best_rank.get('rank')
+            item['RankCategoryName'] = best_rank.get('category')
+        else:
+            item['BestSellerRank'] = best_rank
         
-        # Delivery information - UPDATED WITH WORKING SELECTORS
+        sub_rank = self.extract_sales_sub_rank(response)
+        if sub_rank and isinstance(sub_rank, dict):
+            item['SalesSubRank'] = sub_rank.get('rank')
+            item['SubRankCategoryName'] = sub_rank.get('category')
+        else:
+            item['SalesSubRank'] = sub_rank
+        
+        sub_sub_rank = self.extract_sales_sub_sub_rank(response)
+        if sub_sub_rank and isinstance(sub_sub_rank, dict):
+            item['SalesSubSubRank'] = sub_sub_rank.get('rank')
+            item['SubSubRankCategoryName'] = sub_sub_rank.get('category')
+        else:
+            item['SalesSubSubRank'] = sub_sub_rank
+        
+        sub_sub_sub_rank = self.extract_sales_sub_sub_sub_rank(response)
+        if sub_sub_sub_rank and isinstance(sub_sub_sub_rank, dict):
+            item['SalesSubSubSubRank'] = sub_sub_sub_rank.get('rank')
+        else:
+            item['SalesSubSubSubRank'] = sub_sub_sub_rank
+        
+        # Delivery information 
         delivery_info = self.extract_delivery_info(response)
         item.update(delivery_info)
         
-        # Seller information - UPDATED WITH WORKING SELECTORS
+        # Seller information 
         seller_info = self.extract_seller_info(response)
         item.update(seller_info)
         
@@ -280,11 +303,13 @@ class AmazonSpider(scrapy.Spider):
         item['Prime'] = item['IsPrime']  # Duplicate field
         item['AvailableQuantity'] = self.extract_available_quantity(response)
         
-        # Additional fields - UPDATED WITH WORKING SELECTORS
+        # Additional fields 
         item['ListingDate'] = self.extract_listing_date(response)
         item['CustomerServiceProvider'] = self.extract_customer_service_provider(response)
         item['SellerOffersCount'] = self.extract_seller_offers_count(response)
         item['IsBuyBoxWinner'] = self.extract_buy_box_winner(response)
+        item['TotalBought'] = self.extract_total_bought(response)
+        item['NumberOfVariations'] = self.extract_number_of_variations(response)
         
         # Metadata
         item['ScrapedAt'] = datetime.now().isoformat()
@@ -324,7 +349,13 @@ class AmazonSpider(scrapy.Spider):
         for selector in brand_selectors:
             brand = response.css(selector).get()
             if brand:
-                clean_brand = brand.strip().replace('by ', '').replace('Brand:', '').strip()
+                clean_brand = brand.strip()
+                if 'Visit the' in clean_brand and 'Store' in clean_brand:
+                    brand_match = re.search(r'Visit the (.+?) Store', clean_brand)
+                    if brand_match:
+                        clean_brand = brand_match.group(1).strip()
+                else:
+                    clean_brand = clean_brand.replace('by ', '').replace('Brand:', '').strip()
                 if clean_brand and len(clean_brand) > 1:
                     return clean_brand
         return None
@@ -423,20 +454,20 @@ class AmazonSpider(scrapy.Spider):
         return None
     
     def extract_best_seller_rank(self, response):
-        """Extract best seller rank - UPDATED WITH MULTIPLE PRODUCT LAYOUTS"""
+        """Extract best seller rank with category name - UPDATED STRUCTURE"""
         # Method 1: JBL-style product (productDetails_detailBullets_sections1)
         rank_text = response.css('#productDetails_detailBullets_sections1 tr:contains("Best Sellers Rank") td span li span span::text').get()
         if rank_text:
-            rank_match = re.search(r'(\d+)', rank_text)
-            if rank_match:
-                return int(rank_match.group(1))
+            return self.parse_rank_with_category(rank_text)
         
         # Method 2: Anker-style product (search in page text)
         # Look for "Best Sellers Rank: 312 in Climate Pledge Friendly"
         if 'Best Sellers Rank' in response.text:
-            rank_match = re.search(r'Best Sellers Rank:?\s*(\d+)\s+in', response.text)
+            rank_match = re.search(r'Best Sellers Rank:?\s*(\d+)\s+in\s+(.+?)(?:\s*\(|$)', response.text)
             if rank_match:
-                return int(rank_match.group(1))
+                rank_num = int(rank_match.group(1))
+                category = rank_match.group(2).strip()
+                return {'rank': rank_num, 'category': category}
         
         # Method 3: Additional fallback selectors
         fallback_selectors = [
@@ -448,34 +479,58 @@ class AmazonSpider(scrapy.Spider):
         for selector in fallback_selectors:
             rank_text = response.css(selector).get()
             if rank_text:
-                rank_match = re.search(r'(\d+)', rank_text)
-                if rank_match:
-                    return int(rank_match.group(1))
+                return self.parse_rank_with_category(rank_text)
+        
+        return None
+    
+    def parse_rank_with_category(self, rank_text):
+        """Parse rank text like '2,563 in Health & Personal Care'"""
+        if not rank_text:
+            return None
+        
+        try:
+            rank_match = re.search(r'(\d+(?:,\d+)*)\s+in\s+(.+?)(?:\s*\(|$)', rank_text)
+            if rank_match:
+                rank_num = int(rank_match.group(1).replace(',', ''))
+                category = rank_match.group(2).strip()
+                return {'rank': rank_num, 'category': category}
+            
+            # Fallback: just extract number
+            rank_match = re.search(r'(\d+(?:,\d+)*)', rank_text)
+            if rank_match:
+                rank_num = int(rank_match.group(1).replace(',', ''))
+                return {'rank': rank_num, 'category': None}
+            
+        except:
+            pass
         
         return None
     
     def extract_sales_sub_rank(self, response):
-        """Extract sales sub-rank"""
-        # Get the category name from best seller rank
-        rank_text = response.css('#productDetails_detailBullets_sections1 tr:contains("Best Sellers Rank") td span li span span::text').get()
-        if rank_text:
-            # Extract category from "430 in In-Ear Headphones"
-            category_match = re.search(r'\d+\s+in\s+(.+)', rank_text)
-            if category_match:
-                return category_match.group(1).strip()
+        """Extract sales sub-rank with category name"""
+        rank_elements = response.css('#productDetails_detailBullets_sections1 tr:contains("Best Sellers Rank") td span li span span::text').getall()
+        if len(rank_elements) > 1:
+            sub_rank_text = rank_elements[1]
+            return self.parse_rank_with_category(sub_rank_text)
         
         return None
     
     def extract_sales_sub_sub_rank(self, response):
-        """Extract sales sub-sub-rank"""
-        # Look for additional category rankings in the same section
+        """Extract sales sub-sub-rank with category name"""
+        # Get all rank elements to find sub-sub-rankings
         rank_elements = response.css('#productDetails_detailBullets_sections1 tr:contains("Best Sellers Rank") td span li span span::text').getall()
-        if len(rank_elements) > 1:
-            # If there are multiple rankings, return the second one
-            second_rank = rank_elements[1]
-            rank_match = re.search(r'(\d+)', second_rank)
-            if rank_match:
-                return int(rank_match.group(1))
+        if len(rank_elements) > 2:
+            sub_sub_rank_text = rank_elements[2]
+            return self.parse_rank_with_category(sub_sub_rank_text)
+        
+        return None
+    
+    def extract_sales_sub_sub_sub_rank(self, response):
+        """Extract sales sub-sub-sub-rank with category name"""
+        rank_elements = response.css('#productDetails_detailBullets_sections1 tr:contains("Best Sellers Rank") td span li span span::text').getall()
+        if len(rank_elements) > 3:
+            sub_sub_sub_rank_text = rank_elements[3]
+            return self.parse_rank_with_category(sub_sub_sub_rank_text)
         
         return None
     
@@ -705,6 +760,57 @@ class AmazonSpider(scrapy.Spider):
         
         return None
     
+    def convert_date_to_iso(self, date_text):
+        """Convert human-readable date to ISO format (YYYY-MM-DD)"""
+        if not date_text:
+            return None
+        
+        try:
+            from datetime import datetime
+            import re
+            
+            date_patterns = [
+                r'(\w+)\s+(\d+),\s+(\d{4})',  
+                r'(\d+)\s+(\w+)\s+(\d{4})',   
+                r'(\w+)\s+(\d+)\s+(\d{4})',  
+            ]
+            
+            for pattern in date_patterns:
+                match = re.search(pattern, date_text)
+                if match:
+                    if len(match.groups()) == 3:
+                        month, day, year = match.groups()
+                        # Handle different month formats
+                        if month.isdigit():
+                            # Format: "30 May 2021"
+                            day, month, year = month, day, year
+                        
+                        month_names = {
+                            'january': '01', 'jan': '01',
+                            'february': '02', 'feb': '02',
+                            'march': '03', 'mar': '03',
+                            'april': '04', 'apr': '04',
+                            'may': '05',
+                            'june': '06', 'jun': '06',
+                            'july': '07', 'jul': '07',
+                            'august': '08', 'aug': '08',
+                            'september': '09', 'sep': '09', 'sept': '09',
+                            'october': '10', 'oct': '10',
+                            'november': '11', 'nov': '11',
+                            'december': '12', 'dec': '12'
+                        }
+                        
+                        month_lower = month.lower()
+                        if month_lower in month_names:
+                            month_num = month_names[month_lower]
+                            day_num = day.zfill(2)
+                            return f"{year}-{month_num}-{day_num}"
+            
+            return date_text  
+            
+        except Exception as e:
+            return date_text
+    
     def extract_listing_date(self, response):
         """Extract listing date - UPDATED WITH WORKING SELECTOR"""
         # Based on shell testing: ' 5 Oct. 2022 '
@@ -712,7 +818,7 @@ class AmazonSpider(scrapy.Spider):
         if date_text:
             clean_date = date_text.strip()
             if clean_date and clean_date != ' ':
-                return clean_date
+                return self.convert_date_to_iso(clean_date)
         
         return None
     
@@ -736,6 +842,75 @@ class AmazonSpider(scrapy.Spider):
                 return True
         
         return False
+    
+    def extract_total_bought(self, response):
+        """Extract total bought information"""
+        total_bought_selectors = [
+            'span:contains("bought in the past month")::text',
+            'span:contains("purchased")::text',
+            'span:contains("bought")::text',
+            'div:contains("bought in the past month")::text',
+            'div:contains("purchased")::text',
+            'div:contains("bought")::text'
+        ]
+        
+        for selector in total_bought_selectors:
+            bought_text = response.css(selector).get()
+            if bought_text:
+                import re
+                number_match = re.search(r'(\d+(?:\.\d+)?[KMB]?\+?)\s*(?:bought|purchased)', bought_text, re.IGNORECASE)
+                if number_match:
+                    return number_match.group(1)
+        
+        page_text = response.text
+        bought_patterns = [
+            r'(\d+(?:\.\d+)?[KMB]?\+?)\s*bought\s+in\s+the\s+past\s+month',
+            r'(\d+(?:\.\d+)?[KMB]?\+?)\s*purchased',
+            r'(\d+(?:\.\d+)?[KMB]?\+?)\s*bought'
+        ]
+        
+        for pattern in bought_patterns:
+            match = re.search(pattern, page_text, re.IGNORECASE)
+            if match:
+                return match.group(1)
+        
+        return None
+    
+    def extract_number_of_variations(self, response):
+        """Extract number of product variations (flavors, colors, sizes)"""
+        variation_selectors = [
+            '#variation_color_name select option',
+            '#variation_size_name select option',
+            '#variation_flavor_name select option',
+            '.a-dropdown-item',
+            '.a-dropdown-prompt'
+        ]
+        
+        variations = set()
+        
+        for selector in variation_selectors:
+            options = response.css(selector)
+            for option in options:
+                text = option.get()
+                if text and text.strip():
+                    variations.add(text.strip())
+        
+        # Also look for variation text patterns
+        page_text = response.text
+        variation_patterns = [
+            r'(\d+)\s+variations?',
+            r'(\d+)\s+options?',
+            r'(\d+)\s+colors?',
+            r'(\d+)\s+sizes?',
+            r'(\d+)\s+flavors?'
+        ]
+        
+        for pattern in variation_patterns:
+            match = re.search(pattern, page_text, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+        
+        return len(variations) if variations else None
     
     def closed(self, reason):
         """Called when spider closes - mark any remaining keywords as attempted"""
