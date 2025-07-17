@@ -44,16 +44,16 @@ AMAZON_DOMAINS = {
 }
 
 # Default domain to scrape
-DEFAULT_DOMAIN = 'us'
+DEFAULT_DOMAIN = 'uk'
 
 # ==================== PERFORMANCE & RATE LIMITING ====================
 # Scraping performance settings
-MAX_PAGES_PER_KEYWORD = 1  # Number of pages to scrape per keyword
+MAX_PAGES_PER_KEYWORD = 2  # Number of pages to scrape per keyword
 MAX_PRODUCTS_PER_PAGE = 20  # Approximate products per page
 DELAY_BETWEEN_REQUESTS = 0.1  # Seconds between requests (recommended: 2-5)
 RANDOMIZE_DELAY = True  # Add randomness to delays
-CONCURRENT_REQUESTS = 50  # Number of concurrent requests (recommended: 1-2)
-CONCURRENT_REQUESTS_PER_DOMAIN = 25  # Concurrent requests per domain
+CONCURRENT_REQUESTS = 25  # Number of concurrent requests (recommended: 1-2)
+CONCURRENT_REQUESTS_PER_DOMAIN = 20  # Concurrent requests per domain
 
 # AutoThrottle settings (dynamic delay adjustment)
 AUTOTHROTTLE_ENABLED = True
@@ -339,15 +339,23 @@ OPENAI_TEMPERATURE = 0.7
 # Categories for keyword generation
 PRODUCT_CATEGORIES = [
     'Electronics',
+    'Arts, Crafts & Sewing',
+    'Beauty',
+    'Health & Personal Care',
     'Home & Kitchen',
-    'Sports & Outdoors'
-    # 'Health & Personal Care',
-    # 'Clothing & Accessories',
-    # 'Books',
-    # 'Toys & Games',
-    # 'Automotive',
-    # 'Beauty',
-    # 'Office Products'
+    'Patio, Lawn & Garden',
+    'Luggage & Travel Gear',
+    'Pet Supplies',
+    'Sports & Outdoors',
+    'Cell Phones & Accessories',
+    'Appliances',
+    'Automotive',
+    'Baby',
+    'Clothing',
+    'Office Products',
+    'Computers',
+    'Tools & Home Improvement',
+    'Toys & Games',
 ]
 
 # Keyword generation parameters
