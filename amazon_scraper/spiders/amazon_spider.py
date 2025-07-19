@@ -845,6 +845,36 @@ class AmazonSpider(scrapy.Spider):
     
     def extract_total_bought(self, response):
         """Extract total bought information"""
+        def convert_to_number(text):
+            """Convert abbreviated numbers to actual numeric values"""
+            if not text:
+                return None
+            
+            # Clean the text - remove spaces and convert to lowercase
+            text = text.strip().lower().replace(',', '')
+            
+            # Remove the '+' sign if present
+            text = text.replace('+', '')
+            
+            # Extract number and suffix
+            import re
+            match = re.match(r'^(\d+(?:\.\d+)?)([kmb]?)$', text)
+            if not match:
+                return None
+            
+            number = float(match.group(1))
+            suffix = match.group(2)
+            
+            # Convert based on suffix
+            if suffix == 'k':
+                return int(number * 1000)
+            elif suffix == 'm':
+                return int(number * 1000000)
+            elif suffix == 'b':
+                return int(number * 1000000000)
+            else:
+                return int(number)
+                
         total_bought_selectors = [
             'span:contains("bought in the past month")::text',
             'span:contains("purchased")::text',
@@ -860,7 +890,9 @@ class AmazonSpider(scrapy.Spider):
                 import re
                 number_match = re.search(r'(\d+(?:\.\d+)?[KMB]?\+?)\s*(?:bought|purchased)', bought_text, re.IGNORECASE)
                 if number_match:
-                    return number_match.group(1)
+                    raw_value = number_match.group(1)
+                    numeric_value = convert_to_number(raw_value)
+                    return numeric_value
         
         page_text = response.text
         bought_patterns = [
@@ -872,7 +904,9 @@ class AmazonSpider(scrapy.Spider):
         for pattern in bought_patterns:
             match = re.search(pattern, page_text, re.IGNORECASE)
             if match:
-                return match.group(1)
+                raw_value = match.group(1)
+                numeric_value = convert_to_number(raw_value)
+                return numeric_value
         
         return None
     
